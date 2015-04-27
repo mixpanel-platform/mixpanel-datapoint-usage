@@ -7,44 +7,31 @@
   </head>
   <body class="mixpanel-platform-body">
     <div class="mixpanel-platform-section">
-      <div id="eventSelect" style="float: left;"></div>
-      <div id="by" class="mixpanel-platform-label" style="margin-left: 10px; display: none;">by</div>
-      <div id="propSelect" style="float: left;"></div>
-      <div id="dateSelect" style="float: right;"></div>
-      <div style="clear: both;"></div>
       <div id="graph"></div>
     </div>
     <div id="table"></div>
     <script>
       MP.api.ready(function() {
-        var eventSelect = $('#eventSelect').MPEventSelect();
-        var propSelect  = $('#propSelect').MPPropertySelect();
-        var dateSelect  = $('#dateSelect').MPDatepicker();
+        var topEventLimit = 30;
+        var dataUnit = 'month';
+        var dataInterval = 12;
+
         var eventGraph  = $('#graph').MPChart({chartType: 'line'});
         var eventTable  = $('#table').MPTable({
           showPercentages: true,
           firstColHeader: 'Event'
         });
 
-        var runQuery = function() {
-          var eventName = eventSelect.MPEventSelect('value'),
-              propName  = propSelect.MPPropertySelect('value'),
-              dateRange = dateSelect.MPDatepicker('value');
-
-          if (eventName) {
-            MP.api.segment(eventName, propName, dateRange).done(function(results) {
-              eventGraph.MPChart('setData', results);
-              eventTable.MPTable('setData', results);
-            });
-          }
-        };
-        eventSelect.on('change', function(e, eventName) {
-          propSelect.MPPropertySelect('setEvent', eventName);
-          $("#by").show();
-          runQuery();
+        MP.api.topEvents({type: 'general', limit: topEventLimit}).then(function(result) {
+          return $.map(result.values(), function(v) { return v });
+        }).then(function(eventName) {
+          eventName.push({type: 'general', unit: dataUnit, interval: dataInterval});
+          return MP.api.events.apply(MP.api, eventName)
+        }).then(function(eventData) {
+          eventGraph.MPChart('setData', eventData);
+          eventTable.MPTable('setData', eventData);
         });
-        propSelect.on('change', runQuery);
-        dateSelect.on('change', runQuery);
+
       });
     </script>
   </body>
