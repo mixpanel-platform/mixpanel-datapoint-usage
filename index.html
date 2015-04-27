@@ -4,6 +4,7 @@
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/css/reset.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.css">
     <script src="https://cdn.mxpnl.com/libs/mixpanel-platform/build/mixpanel-platform.v0.latest.min.js"></script>
+    <title>Datapoint Usage</title>
   </head>
   <body class="mixpanel-platform-body">
     <div class="mixpanel-platform-section">
@@ -11,28 +12,41 @@
     </div>
     <div id="table"></div>
     <script>
-      MP.api.ready(function() {
-        var topEventLimit = 30;
-        var dataUnit = 'month';
-        var dataInterval = 12;
+      var topEventLimit = 30;
+      var dataUnit = 'month';
+      var dataInterval = 12;
 
-        var eventGraph  = $('#graph').MPChart({chartType: 'line'});
-        var eventTable  = $('#table').MPTable({
-          showPercentages: true,
-          firstColHeader: 'Event'
-        });
-
-        MP.api.topEvents({type: 'general', limit: topEventLimit}).then(function(result) {
-          return $.map(result.values(), function(v) { return v });
-        }).then(function(eventName) {
-          eventName.push({type: 'general', unit: dataUnit, interval: dataInterval});
-          return MP.api.events.apply(MP.api, eventName)
-        }).then(function(eventData) {
-          eventGraph.MPChart('setData', eventData);
-          eventTable.MPTable('setData', eventData);
-        });
-
+      var eventGraph  = $('#graph').MPChart({chartType: 'line'});
+      var eventTable  = $('#table').MPTable({
+        showPercentages: true,
+        firstColHeader: 'Event'
       });
+
+      MP.api.topEvents({type: 'general', limit: topEventLimit}).then(function(result) {
+        return $.map(result.values(), function(v) { return v });
+      }).then(function(eventName) {
+        eventName.push({type: 'general', unit: dataUnit, interval: dataInterval});
+        return MP.api.events.apply(MP.api, eventName);
+      }).then(function(eventData) {
+        raw = eventData.values();
+        publishData = $.extend({'Total': calcTotalDataPoint(raw)}, raw);
+        eventGraph.MPChart('setData', publishData);
+        eventTable.MPTable('setData', publishData);
+      });
+
+      function calcTotalDataPoint(data) {
+        var totalData = {};
+        $.each(data, function(){
+          $.each(this, function(k, v){
+            if (totalData[k] === undefined) {
+              totalData[k] = 0;
+            } else {
+              totalData[k] += v;
+            }
+          });
+        });
+        return totalData;
+      }
     </script>
   </body>
 </html>
